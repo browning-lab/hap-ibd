@@ -1,0 +1,27 @@
+#!/bin/bash
+if [ ! -f hap-ibd.jar ]; then
+  echo
+  echo "Download hap-ibd program: hap-ibd.jar"
+  echo
+  wget https://faculty.washington.edu/browning/hap-ibd.jar
+fi
+
+if [ ! -f target.truth.vcf.gz ]; then
+    echo
+    echo "Download test VCF file: target.truth.vcf.gz"
+    echo
+    wget https://raw.githubusercontent.com/browning-lab/hap-ibd/master/test/target.truth.vcf.gz
+fi
+
+if [ ! -f target.map ]; then
+    echo
+    echo "Download genetic map: target.map"
+    echo
+    wget https://raw.githubusercontent.com/browning-lab/hap-ibd/master/test/target.map
+fi
+
+echo
+echo "Run hap-ibd analysis of test data"
+echo
+java -jar hap-ibd.jar gt=target.truth.vcf.gz map=target.map out=hap-ibd.out
+
