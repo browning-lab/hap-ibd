@@ -14,7 +14,7 @@ doi: https://biorxiv.org/cgi/content/short/2019.12.12.874685v1
 
 Brian Browning
 
-Last updated December 12, 2019
+Last updated January 13, 2020
 
 ## Installation
 
@@ -70,7 +70,7 @@ A VCF record may have multiple ALT alleles. A VCF file with a name ending in
 
 * **map=[file]** where **[file]** is a
 [PLINK format genetic map](http://zzz.bwh.harvard.edu/plink/data.shtml#map)
-with cM units. Ibis will use linear interpolation to estimate genetic
+with cM units. The **hap-ibd** program will use linear interpolation to estimate genetic
 positions between map positions. Chromosome identifiers in the genetic map and
 input VCF file must match. HapMap genetic maps in cM units are available for
 [GRCh36](http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh36.map.zip),
