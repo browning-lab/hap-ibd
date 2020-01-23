@@ -14,7 +14,7 @@ doi: https://biorxiv.org/cgi/content/short/2019.12.12.874685v1
 
 Brian Browning
 
-Last updated January 13, 2020
+Last updated January 23, 2020
 
 ## Installation
 
@@ -79,13 +79,10 @@ input VCF file must match. HapMap genetic maps in cM units are available for
 
 * **out=[string]** where **[string]** is the output filename prefix.
 
-* **excludesamples=[file]** where [file] is a text file containing samples
-(one sample per line) to be excluded from the analysis.
-
 ### Optional Parameters
 
 * **min-seed=[number > 0.0]** specifies the minimum cM length of a seed
-(identity-by-state) IBS segment that is eligible to be extended
+identity-by-state (IBS) segment that is eligible to be extended
 (**default: min-seed=2.0**). See the **max-gap** and **min-extend** parameters
 for more information.
 
@@ -96,28 +93,29 @@ The base-pair gap is the absolute value of the difference between the
 VCF POS field of the first and last marker in the non-IBS region between
 the two segments. The **max-gap** parameter allows output IBD segments to
 include very short non-IBS regions that can result from genotype error,
-mutation, and gene conversion.  If **max-gap=-1** no IBS/HBS segments will be
-merged. See the **min-seed** and **min-extend** parameters for more information.
+mutation, and gene conversion.  If **max-gap=-1** no seed IBS segments will be
+extended. See the **min-seed** and **min-extend** parameters for more 
+information.
 
 * **min-extend=[number ≤ min-seed]** specifies the minimum cM length of an IBS
 segment that can extend a seed segment.  The default
-value is minimum(1.0, **min-seed**). See the **min-seed** and **max-gap**
-parameters  for more details.
+value is the minimum of 1.0 and the **min-seed** parameter. See the 
+**min-seed** and **max-gap** parameters  for more details.
 
 * **min-output=[number > 0.0]** specifies the minimum cM
-length of output IBD/HBD segments. (**default: min-length=2.0**).
+length of output IBD/HBD segments. (**default: min-output=2.0**).
 Each output HBD/IBD segment is composed of a seed IBS segment and any
 neighboring extension IBS segments. See the **min-seed**, **max-gap**, and
 **min-extend** parameters for more details.
 
 * **min-markers=[number ≥ 1]** specifies the minimum number of markers in
-each seed and extension IBS segment (**default: min-markers=1**).
+each seed and extension IBS segment (**default: min-markers=100**).
 An IBS seed segment is required to contain at least **min-markers** markers.
-An IBS extension segment is required to contain at last
-((**min-seed**/**min_extend**) &times; **min-markers**) markers.
+An IBS extension segment is required to contain at least
+((**min-extend**/**min_seed**) &times; **min-markers**) markers.
 Increasing the **min-markers** parameter can reduce inflation in
 the number of output IBD segments in regions with sparse marker coverage.
-See the **max-seed** and **min-extend** parameters for more information.
+See the **min-seed** and **min-extend** parameters for more information.
 
 * **min-mac=[integer ≥ 1]** specifies the minimum number of copies of the minor
 allele. If a marker has fewer than the minimum number of minor allele carriers,
@@ -127,6 +125,9 @@ the allele with the second-largest allele frequency.
 
 * **nthreads=[integer ≥ 1]** specifies the number of computational threads to
 use. The default **nthreads** parameter is the number of CPU cores.
+
+* **excludesamples=[file]** where [file] is a text file containing samples
+(one sample per line) to be excluded from the analysis.
 
 
 ## Output files
@@ -141,7 +142,7 @@ IBD segments per sample.
 The gzip-compressed **ibd** file (.ibd.gz) contains IBD segments shared between
 individuals. The gzip-compressed **hbd** file (.hbd.gz) contains HBD
 segments within within individuals. Each line of the **ibd** and **hbd** output
-files represents one IBD or HBD segment and contains 10 tab-delimited fields:
+files represents one IBD or HBD segment and contains 8 tab-delimited fields:
 
 1. First sample identifier
 2. First sample haplotype index (1 or 2)
