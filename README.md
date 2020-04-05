@@ -14,7 +14,7 @@ doi: https://biorxiv.org/cgi/content/short/2019.12.12.874685v1
 
 Brian Browning
 
-Last updated January 23, 2020
+Last updated April 4, 2020
 
 ## Installation
 
@@ -94,12 +94,12 @@ VCF POS field of the first and last marker in the non-IBS region between
 the two segments. The **max-gap** parameter allows output IBD segments to
 include very short non-IBS regions that can result from genotype error,
 mutation, and gene conversion.  If **max-gap=-1** no seed IBS segments will be
-extended. See the **min-seed** and **min-extend** parameters for more 
+extended. See the **min-seed** and **min-extend** parameters for more
 information.
 
 * **min-extend=[number ≤ min-seed]** specifies the minimum cM length of an IBS
 segment that can extend a seed segment.  The default
-value is the minimum of 1.0 and the **min-seed** parameter. See the 
+value is the minimum of 1.0 and the **min-seed** parameter. See the
 **min-seed** and **max-gap** parameters  for more details.
 
 * **min-output=[number > 0.0]** specifies the minimum cM
@@ -157,6 +157,3 @@ files represents one IBD or HBD segment and contains 8 tab-delimited fields:
 The **hap-ibd** program is licensed under the Apache License, Version 2.0 (the License).
 You may obtain a copy of the License from http://www.apache.org/licenses/LICENSE-2.0
 
-Source files in the net/sf/samtools/ directory are from the Broad Institute
-and are licensed under the [MIT License](https://opensource.org/licenses/MIT).
-The Broad Institute files are used to perform BGZIP decompression.

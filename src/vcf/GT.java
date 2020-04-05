@@ -165,7 +165,11 @@ public interface GT {
     /**
      * Returns the probability of the observed data for the specified marker
      * and sample if the specified pair of unordered alleles is the true
-     * genotype.
+     * genotype. Returns {@code 1.0f} if the corresponding genotype
+     * determined by the {@code isPhased()}, {@code allele1()}, and
+     * {@code allele2()} methods is consistent with the specified ordered
+     * genotype, and returns {@code 0.0f} otherwise.
+     *
      * @param gt the genotype data
      * @param marker the marker index
      * @param sample the sample index
@@ -183,11 +187,6 @@ public interface GT {
      * {@code allele1 < 0 || allele1 >= this.marker(marker).nAlleles()}
      * @throws IndexOutOfBoundsException if
      * {@code allele2 < 0 || allele2 >= this.marker(marker).nAlleles()}
-     *
-     * @implSpec The default implementation returns {@code 1.0f} if the
-     * corresponding genotype determined by the {@code isPhased()},
-     * {@code allele1()}, and {@code allele2()} methods is consistent
-     * with the specified ordered genotype, and returns {@code 0.0f} otherwise.
      */
     static float gl(GT gt, int marker, int sample, int allele1, int allele2) {
         int nAlleles = gt.marker(marker).nAlleles();

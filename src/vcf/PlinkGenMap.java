@@ -384,6 +384,8 @@ public final class PlinkGenMap implements GeneticMap {
             int fb = basePos[chrom][bIndex];
             double interp = fa + ((x-a)/(b-a)) * (fb-fa);
             if (interp>=Integer.MAX_VALUE) {
+                System.out.println("a=" + a + " x=" + x + " b=" + b);
+                System.out.println("fa=" + fa + " fb=" + fb);
                 String s = "Base position exceeds Integer.MAX_VALUE"
                         + blbutil.Const.nl
                         + "Are all genetic distances in cM units (in command line and in genetic map)?";

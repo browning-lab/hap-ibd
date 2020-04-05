@@ -21,17 +21,15 @@ import java.io.Closeable;
 import java.io.File;
 
 /**
- * <p>An iterator for data elements in a file.  If an IOExceptions is thrown while
- * reading a file, the IOException is trapped, an appropriate error message
- * is written to standard out, and the Java Virtual Machine is
+ * <p>An iterator for data elements in a file.  If an IOExceptions is thrown
+ * while reading a file, the IOException is trapped, an appropriate error
+ * message is written to standard out, and the Java Virtual Machine is
  * terminated.  The {@code Iterator.remove()} method is unsupported
- * and throws an {@code UnsupportedOperationException}.
- * </p>
- * When the {@code FileIterator} object is no longer needed,
- * the {@code close()} method should be invoked to release any
- * system resources controlled by the object.  After calling {@code close()},
- * invoking {@code hasNext()} returns {@code false}, and invoking
- * {@code next()} will throw a {@code NoSuchElementException}.
+ * and throws an {@code UnsupportedOperationException}.</p>
+ *
+ * <p>When the {@code FileIt} object is no longer needed, the {@code close()}
+ * method should be invoked to release any system resources controlled
+ * by the object.</p>
  *
  * @param <E> the type of the elements returned by this iterator's
  * {@code next()} method.
@@ -42,18 +40,20 @@ public interface FileIt<E> extends java.util.Iterator<E>, Closeable {
 
     /**
      * Returns the file from which the data are read, or
-     * {@code null} if the data are read from standard input or are
-     * computed data.
+     * {@code null} if the data are read from standard input or if the
+     * data source is unknown.
      * @return the file from which the data are read, or
-     * {@code null} if the data are read from standard input or are
-     * computed data
+     * {@code null} if the data are read from standard input or if the
+     * data source is unknown
      */
     File file();
 
     /**
-     * Terminates the iteration and releases any system resources that
-     * are held by this object. After invoking {@code close()}, further
-     * invocations of {@code close()} have no effect.
+     * Stops reading data elements and releases any system resources that
+     * are held by this object. Buffered data elements may remain accessible
+     * via the {@code hasNext()} and {@code next()} methods after invoking
+     * {@code close()}. After invoking {@code close()}, further invocations
+     * of {@code close()} have no effect.
      */
     @Override
     public void close();

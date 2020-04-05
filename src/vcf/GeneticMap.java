@@ -125,63 +125,48 @@ public interface GeneticMap {
     }
 
     /**
-     * Returns the an array of length {@code hapPairs.nMarkers()} whose
+     * Returns the an array of length {@code markers.nMarkers()} whose
      * whose {@code j}-th element is the genetic map position
      * of the {@code j}-th marker.
+     * @param genMap the genetic map
      * @param markers the list of markers
      * @return an array of genetic map positions
      * @throws IllegalArgumentException if this genetic map does not contain a
      * map position for any specified marker
-     * @throws NullPointerException if {@code markers == null}
+     * @throws NullPointerException if {@code genMap==null || markers == null}
      */
-    default double[] genPos(Markers markers) {
+    static double[] genPos(GeneticMap genMap, Markers markers) {
         double[] genPos = new double[markers.nMarkers()];
         for (int j=0; j<genPos.length; ++j) {
-            genPos[j] = this.genPos(markers.marker(j));
+            genPos[j] = genMap.genPos(markers.marker(j));
         }
         return genPos;
     }
 
     /**
-     * Returns the an array of length {@code hapPairs.nMarkers()} whose
-     * whose {@code j}-th element for {@code j > 0} is the
-     * probability of recombination between marker {@code j - 1}
-     * and marker {@code j}.  The initial marker on a chromosome has
-     * recombination probability 0.
-     * Any inter-marker genetic distances less than {@code 1e-7} cM are
-     * increased to {@code 1e-7} cM.
+     * Returns the an array of length {@code markers.nMarkers()} whose
+     * whose {@code j}-th element is the genetic map position
+     * of the {@code j}-th marker.
+     * @param genMap the genetic map in cM units
+     * @param minDist the minimum required cM distance between successive markers
      * @param markers the list of markers
-     * @param intensity the reciprocal of the expected length of the
-     * longest IBD segment at a locus
-     * @return an array of inter-marker recombination probabilities
-     * @throws IllegalArgumentException if
-     * {@code intensity <= 0.0 || Double.isFinite(intensity)==false}
-     * @throws IllegalArgumentException if this genetic map does not contain a
-     * map position for any specified marker
-     * @throws NullPointerException if {@code markers == null}
+     * @return an array of genetic map positions
+     * @throws IllegalArgumentException if {@code Double.isNaN(minDist)}
+     * @throws NullPointerException if {@code genMap==null || markers == null}
      */
-    default float[] pRecomb(Markers markers, double intensity) {
-        if (intensity <= 0.0 || Double.isFinite(intensity)==false) {
-            throw new IllegalArgumentException(String.valueOf(intensity));
+    static double[] genPos(GeneticMap genMap, double minDist, Markers markers) {
+        if (Double.isNaN(minDist)) {
+            throw new IllegalArgumentException(String.valueOf(minDist));
         }
-        double MIN_CM_DIST = 1e-7;
-        int chrom = markers.marker(0).chromIndex();
-        float[] pRecomb = new float[markers.nMarkers()];
-        double c = -intensity;
-        double lastGenPos = this.genPos(chrom, markers.marker(0).pos());
-        pRecomb[0] = 0f;
-        for (int j=1; j<pRecomb.length; ++j) {
-            Marker m = markers.marker(j);
-            double genPos = this.genPos(markers.marker(j));
-            if (m.chromIndex()!= chrom) {
-                pRecomb[j] = 0;
-            }
-            else {
-                double genDist = Math.max(Math.abs(genPos - lastGenPos), MIN_CM_DIST);
-                pRecomb[j] = (float) -Math.expm1(c*genDist);
-            }
-            lastGenPos = genPos;
+        double[] genPos = new double[markers.nMarkers()];
+        genPos[0] = genMap.genPos(markers.marker(0));
+        double lastMapPos = genPos[0];
+        for (int j=1; j<genPos.length; ++j) {
+            double mapPos = genMap.genPos(markers.marker(j));
+            double dist = Math.max((mapPos - lastMapPos), minDist);
+            genPos[j] = genPos[j-1] + dist;
+            lastMapPos = mapPos;
         }
-        return pRecomb;
+        return genPos;
     }
 }

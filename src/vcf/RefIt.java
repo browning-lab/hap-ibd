@@ -17,11 +17,10 @@
  */
 package vcf;
 
+import blbutil.BlockLineReader;
 import blbutil.FileIt;
 import blbutil.Filter;
-import blbutil.MultiThreadUtils;
 import blbutil.SampleFileIt;
-import blbutil.Utilities;
 import bref.SeqCoder3;
 import java.io.File;
 import java.util.ArrayDeque;
@@ -30,9 +29,6 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 /**
@@ -54,36 +50,32 @@ public class RefIt implements SampleFileIt<RefGTRec> {
      * The default number of {@code GTRec} objects that are
      * stored in a buffer.
      */
-    public static final int DEFAULT_BUFFER_SIZE = 1<<10;
+    private static final int DEFAULT_BUFFER_SIZE = 1<<10;
 
     private final VcfHeader vcfHeader;
-    private final FileIt<String> it;
     private final Function<String, RefGTRec> mapper;
     private final Filter<Marker> markerFilter;
 
-    private int lastChrom;
-    private boolean eof = false;
-
-    private final ArrayBlockingQueue<String[]> stringBuffer;
-    private final List<RefGTRec> midBuffer;
+    private final BlockLineReader reader;
+    private final List<RefGTRec> lowFreqBuffer;
     private final Deque<RefGTRec> recBuffer;
     private final SeqCoder3 seqCoder;
     private final int maxSeqCodedAlleles;
     private final int maxSeqCodingMajorCnt;
 
-    private final ExecutorService es;
+    private int lastChrom = -1;
 
     /**
      * Create and returns a new {@code RefIt} instance from the specified
      * iterator.
-     * @param strIt an iterator that returns lines of a VCF file
+     * @param it an iterator that returns lines of a VCF file
      * @return a new {@code RefIt} instance
      * @throws IllegalArgumentException if a format error is detected in a
-     * line of a VCF file returned by {@code strIt}
-     * @throws NullPointerException if {@code strIt == null}
+     * line of a VCF file returned by {@code it}
+     * @throws NullPointerException if {@code it == null}
      */
-    public static RefIt create(FileIt<String> strIt) {
-        return RefIt.create(strIt, Filter.acceptAllFilter(),
+    public static RefIt create(FileIt<String> it) {
+        return RefIt.create(it, Filter.acceptAllFilter(),
                 Filter.acceptAllFilter(), DEFAULT_BUFFER_SIZE);
     }
 
@@ -95,9 +87,9 @@ public class RefIt implements SampleFileIt<RefGTRec> {
      * @param markerFilter a marker filter or {@code null}
      * @return a new {@code RefIt} instance
      * @throws IllegalArgumentException if a format error is detected in a
-     * line of a VCF file returned by {@code strItt}
+     * line of a VCF file returned by {@code it}
      * @throws IllegalArgumentException if {@code bufferSize < 1}
-     * @throws NullPointerException if {@code strIt == null}
+     * @throws NullPointerException if {@code it == null}
      */
     public static RefIt create(FileIt<String> it, Filter<String> sampleFilter,
             Filter<Marker> markerFilter) {
@@ -113,9 +105,9 @@ public class RefIt implements SampleFileIt<RefGTRec> {
      * @param bufferSize the number of VCF records stored in a buffer
      * @return a new {@code RefIt} instance
      * @throws IllegalArgumentException if a format error is detected in a
-     * line of a VCF file returned by {@code strItt}
+     * line of a VCF file returned by {@code it}
      * @throws IllegalArgumentException if {@code bufferSize < 1}
-     * @throws NullPointerException if {@code strIt == null}
+     * @throws NullPointerException if {@code it == null}
      */
     public static RefIt create(FileIt<String> it, Filter<String> sampleFilter,
             Filter<Marker> markerFilter, int bufferSize) {
@@ -123,9 +115,9 @@ public class RefIt implements SampleFileIt<RefGTRec> {
     }
 
     private RefIt(FileIt<String> it, Filter<String> sampleFilter,
-            Filter<Marker> markerFilter, int bufferSize) {
-        if (bufferSize < 1) {
-            throw new IllegalArgumentException(String.valueOf(bufferSize));
+            Filter<Marker> markerFilter, int blockSize) {
+        if (blockSize < 1) {
+            throw new IllegalArgumentException(String.valueOf(blockSize));
         }
         if (markerFilter==null) {
             markerFilter = Filter.acceptAllFilter();
@@ -135,7 +127,6 @@ public class RefIt implements SampleFileIt<RefGTRec> {
         String[] nonDataLines = Arrays.copyOf(head, head.length-1);
         String firstDataLine = head[head.length-1];
         boolean[] isDiploid = VcfHeader.isDiploid(firstDataLine);
-        this.it = it;
         this.vcfHeader = new VcfHeader(src, nonDataLines, isDiploid, sampleFilter);
         this.mapper = (String s) -> {
             return RefGTRec.alleleCodedInstance(new VcfRecGTParser(vcfHeader, s));
@@ -145,14 +136,12 @@ public class RefIt implements SampleFileIt<RefGTRec> {
         this.maxSeqCodedAlleles = Math.min(seqCoder.maxNSeq(), SeqCoder3.MAX_NALLELES);
         this.maxSeqCodingMajorCnt = maxSeqCodingMajorCnt(vcfHeader.samples());
 
-        this.lastChrom = -1;
-        this.stringBuffer = new ArrayBlockingQueue<>(1);
-        this.midBuffer = new ArrayList<>();
-        this.recBuffer = new ArrayDeque<>(bufferSize);
+        this.lowFreqBuffer = new ArrayList<>();
+        this.recBuffer = new ArrayDeque<>(blockSize);
 
-        this.es = Executors.newSingleThreadExecutor();
-        startFileReadingThread(es, stringBuffer, firstDataLine, it, bufferSize);
-        fillEmissionBuffer();
+        int nBlocks = 1;
+        this.reader = BlockLineReader.create(it, blockSize, nBlocks);
+        fillRecBuffer(firstDataLine);
     }
 
     private int maxSeqCodingMajorCnt(Samples samples) {
@@ -160,71 +149,56 @@ public class RefIt implements SampleFileIt<RefGTRec> {
         return (int) Math.floor(nHaps*SeqCoder3.COMPRESS_FREQ_THRESHOLD - 1);
     }
 
-    private static void startFileReadingThread(ExecutorService es,
-            ArrayBlockingQueue<String[]> q, String firstRec, FileIt<String> it,
-            int bufferSize) {
-        es.submit(() -> {
-            List<String> recs = new ArrayList<>(bufferSize);
-            recs.add(firstRec);
-            while (it.hasNext()) {
-                if (recs.size()==bufferSize) {
-                    String[] sa = recs.toArray(new String[0]);
-                    MultiThreadUtils.putInBlockingQ(q, sa);
-                    recs.clear();
-                }
-                recs.add(it.next());
-            }
-            try {
-                assert recs.size()>0;
-                q.put(recs.toArray(new String[0]));
-                q.put(new String[0]);
-                recs.clear();
-            } catch (InterruptedException ex) {
-                Utilities.exit("ERROR: " + it.file(), ex);
-            }
-        });
+    private void fillRecBuffer() {
+        fillRecBuffer(null);
     }
 
-    private void fillEmissionBuffer() {
+    private void fillRecBuffer(String firstDataLine) {
         assert recBuffer.isEmpty();
-        boolean finished = false;
-        while (recBuffer.isEmpty() && finished==false) {
-            String[] sa = MultiThreadUtils.takeFromBlockingQ(stringBuffer);
-            if (sa.length==0) {
-                finished = true;
-                stringBuffer.add(sa); // put sentinal back in qeueue
+        while (recBuffer.isEmpty()) {
+            String[] lines = reader.next();
+            if (firstDataLine!=null) {
+                lines = combine(firstDataLine, lines);
+                firstDataLine = null;
+            }
+            if (lines==BlockLineReader.SENTINAL) {
+                flushCompressedRecords();
+                return;
             }
             else {
-                RefGTRec[] recs = parseLines(sa);
+                RefGTRec[] recs = parseLines(lines);
                 for (int j=0; j<recs.length; ++j) {
                     RefGTRec rec = recs[j];
                     int chrom = rec.marker().chromIndex();
                     if (lastChrom == -1) {
                         lastChrom = chrom;
                     }
-                    if (chrom!=lastChrom || midBuffer.size()==Integer.MAX_VALUE) {
-                        flushMidBufferToRecBuffer();
+                    if (chrom!=lastChrom || lowFreqBuffer.size()==Integer.MAX_VALUE) {
+                        flushCompressedRecords();
                         lastChrom = chrom;
                     }
                     if (applySeqCoding(rec)==false) {
-                        midBuffer.add(rec);
+                        lowFreqBuffer.add(rec);
                     }
                     else {
                         boolean success = seqCoder.add(rec);
                         if (success == false) {
-                            flushMidBufferToRecBuffer();
+                            flushCompressedRecords();
                             success = seqCoder.add(rec);
                             assert success;
                         }
-                        midBuffer.add(null);
+                        lowFreqBuffer.add(null);
                     }
                 }
             }
         }
-        if (finished) {
-            flushMidBufferToRecBuffer();
-            eof = true;
-        }
+    }
+
+    private String[] combine(String firstDataLine, String[] lines) {
+        String[] modLines = new String[lines.length + 1];
+        modLines[0] = firstDataLine;
+        System.arraycopy(lines, 0, modLines, 1, lines.length);
+        return modLines;
     }
 
     private RefGTRec[] parseLines(String[] lines) {
@@ -235,30 +209,24 @@ public class RefIt implements SampleFileIt<RefGTRec> {
                 .toArray(RefGTRec[]::new);
     }
 
-    private void flushMidBufferToRecBuffer() {
+    private void flushCompressedRecords() {
         List<RefGTRec> list = seqCoder.getCompressedList();
         int index = 0;
-        for (int j=0, n=midBuffer.size(); j<n; ++j) {
-            GTRec ve = midBuffer.get(j);
+        for (int j=0, n=lowFreqBuffer.size(); j<n; ++j) {
+            GTRec ve = lowFreqBuffer.get(j);
             if (ve==null) {
-                midBuffer.set(j, list.get(index++));
+                lowFreqBuffer.set(j, list.get(index++));
             }
         }
-        recBuffer.addAll(midBuffer);
-        midBuffer.clear();
+        recBuffer.addAll(lowFreqBuffer);
+        lowFreqBuffer.clear();
     }
 
     @Override
     public void close() {
-        it.close();
+        reader.close();
         recBuffer.clear();
-        midBuffer.clear();
-        // empty string buffer in order to stop ExecutorService
-        String[] sa = MultiThreadUtils.takeFromBlockingQ(stringBuffer);
-        while (sa.length>0) {
-            sa = MultiThreadUtils.takeFromBlockingQ(stringBuffer);
-        }
-        MultiThreadUtils.shutdownExecService(es);
+        lowFreqBuffer.clear();
     }
 
     /**
@@ -282,8 +250,8 @@ public class RefIt implements SampleFileIt<RefGTRec> {
             throw new NoSuchElementException();
         }
         RefGTRec first = recBuffer.removeFirst();
-        if (recBuffer.isEmpty() && eof==false) {
-            fillEmissionBuffer();
+        if (recBuffer.isEmpty()) {
+            fillRecBuffer();
         }
         return first;
     }
@@ -299,7 +267,7 @@ public class RefIt implements SampleFileIt<RefGTRec> {
 
     @Override
     public File file() {
-        return it.file();
+        return reader.file();
     }
 
     @Override
@@ -309,10 +277,11 @@ public class RefIt implements SampleFileIt<RefGTRec> {
 
     @Override
     public String toString() {
+        File file = reader.file();
         StringBuilder sb = new StringBuilder(80);
         sb.append(this.getClass().toString());
         sb.append(" : ");
-        sb.append(it.file()==null ? "stdin" : it.file().toString());
+        sb.append(file==null ? "stdin" : file.toString());
         return sb.toString();
     }
 

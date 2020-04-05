@@ -18,6 +18,7 @@
 package blbutil;
 
 import java.util.Arrays;
+import java.util.stream.DoubleStream;
 
 /**
  * Class {@code DoubleArray} represents an immutable list of double floating
@@ -37,6 +38,17 @@ public class DoubleArray {
      */
     public DoubleArray(double[] values) {
         this.values = values.clone();
+    }
+
+    /**
+     * Constructs an {@code DoubleArray} object with the specified
+     * values.
+     * @param values a stream of floating point values
+     * @throws NullPointerException if {@code values == null}
+     * @throws IllegalStateException if the stream has previously been used
+     */
+    public DoubleArray(DoubleStream values) {
+        this.values = values.toArray();
     }
 
     /**
@@ -71,7 +83,7 @@ public class DoubleArray {
      /**
      * Searches {@code this} for the specified value using the binary search
      * algorithm. This list must be sorted (as by the
-     * {@code java.util.Arrays.sort(float[])} method)  prior to making
+     * {@code java.util.Arrays.sort(double[])} method)  prior to making
      * this call. If it is not sorted, the results are undefined.
      * If the list contains multiple elements with the specified
      * value, there is no guarantee which one will be found. This method

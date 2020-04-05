@@ -31,7 +31,6 @@ import java.util.Set;
  */
 public final class Validate {
 
-
     private Validate() {
         // private constructor to prevent instantiation
     }

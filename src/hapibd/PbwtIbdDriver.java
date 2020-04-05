@@ -23,12 +23,10 @@ import blbutil.Filter;
 import blbutil.InputIt;
 import blbutil.MultiThreadUtils;
 import blbutil.SampleFileIt;
+import blbutil.SynchFileOutputStream;
 import blbutil.Utilities;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,8 +68,8 @@ public final class PbwtIbdDriver {
         File hbdFile = new File(par.out() + ".hbd.gz");
         File ibdFile = new File(par.out() + ".ibd.gz");
         try (SampleFileIt<RefGTRec> it = refIt(par);
-                OutputStream hbdOS = new BufferedOutputStream(new FileOutputStream(hbdFile));
-                OutputStream ibdOS = new BufferedOutputStream(new FileOutputStream(ibdFile))) {
+                SynchFileOutputStream hbdOS = new SynchFileOutputStream(hbdFile);
+                SynchFileOutputStream ibdOS = new SynchFileOutputStream(ibdFile)) {
             try {
                 nSamplesAndMarkers[0] = it.samples().nSamples();
                 List<RefGTRec> recList = new ArrayList<>(1<<14);
@@ -89,6 +87,8 @@ public final class PbwtIbdDriver {
             } catch (Throwable t) {
                 Utilities.exit(t);
             }
+            hbdOS.writeEmptyBgzipBlock();
+            ibdOS.writeEmptyBgzipBlock();
         } catch (IOException ex) {
             Utilities.exit(ex);
         }
@@ -96,7 +96,7 @@ public final class PbwtIbdDriver {
     }
 
     private static void detectIBD(HapIbdPar par, RefGT gt, MarkerMap map,
-            OutputStream hbdOS, OutputStream ibdOS) {
+            SynchFileOutputStream hbdOS, SynchFileOutputStream ibdOS) {
         float minSeed = par.min_seed();
         int minMarkers = par.min_markers();
         double[] genPos = map.genPos().toArray();

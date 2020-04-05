@@ -20,12 +20,12 @@ package hapibd;
 import beagleutil.PbwtUpdater;
 import blbutil.BGZIPOutputStream;
 import blbutil.Const;
+import blbutil.SynchFileOutputStream;
 import blbutil.Utilities;
 import ints.IntArray;
 import ints.IntList;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
@@ -39,20 +39,21 @@ import vcf.RefGT;
 import vcf.Samples;
 
 /**
- * <p>Instances of class {@code PbwtIbs} detect IBS segments in phased
+ * <p>Instances of class {@code PbwtIbd} detect IBS segments in phased
  * genotype data.</p>
  *
- * <p>Instances of class {@code PbwtIbs} are thread-safe</p>
+ * <p>Instances of class {@code PbwtIbd} are not thread-safe</p>
  *
  * @author Brian L. Browning {@code <browning@uw.edu>}
  */
 public final class PbwtIbd implements Runnable {
 
-    private static final int baosThreshold = 1<<18;
-    private static final int seedListThreshold = 1<<16;
+    private static final int BAOS_THRESHOLD = 1<<18;
+    private static final int SEED_LIST_THRESHOLD = 1<<16;
     private static final String[] HAP_TO_STRING = new String[] {"1", "2"};
-    private static final AtomicLong nIbdSegs = new AtomicLong(0);
-    private static final AtomicLong nHbdSegs = new AtomicLong(0);
+    private static final AtomicLong N_IBD_SEGS = new AtomicLong(0);
+    private static final AtomicLong N_HBD_SEGS = new AtomicLong(0);
+    private static final AtomicInteger FINISHED_CNT = new AtomicInteger(0);
 
     private final Samples samples;
     private final RefGT gt;
@@ -78,26 +79,26 @@ public final class PbwtIbd implements Runnable {
     private final boolean[] isDiploid;
 
     private final ByteArrayOutputStream hbdBaos
-            = new ByteArrayOutputStream(3*baosThreshold/2 + 1);
+            = new ByteArrayOutputStream(3*BAOS_THRESHOLD/2 + 1);
     private final ByteArrayOutputStream ibdBaos
-            = new ByteArrayOutputStream(3*baosThreshold/2 + 1);
-    private final PrintWriter hbdOut = printWriter(hbdBaos);
-    private final PrintWriter ibdOut = printWriter(ibdBaos);
-    private final OutputStream hbdOS;
-    private final OutputStream ibdOS;
+            = new ByteArrayOutputStream(3*BAOS_THRESHOLD/2 + 1);
+    private final SynchFileOutputStream hbdOS;
+    private final SynchFileOutputStream ibdOS;
+
+    private PrintWriter hbdOut = printWriter(hbdBaos);
+    private PrintWriter ibdOut = printWriter(ibdBaos);
 
     private boolean useSeedQ = false;
     private final int nWindows;
     private final IntList seedList;
     private final BlockingQueue<int[]> seedQ;
-    private static final AtomicInteger finishedCnt = new AtomicInteger(0);
 
     private static PrintWriter printWriter(ByteArrayOutputStream out) {
         return new PrintWriter(new BGZIPOutputStream(out, false));
     }
 
     /**
-     * Constructs an {@code PbwtIbs} instance for the specified data.
+     * Constructs an {@code PbwtIbd} instance for the specified data.
      * @param par the command line parameters
      * @param gt phased, non-missing genotype data
      * @param map the genetic map
@@ -118,7 +119,7 @@ public final class PbwtIbd implements Runnable {
     public PbwtIbd(HapIbdPar par, RefGT gt, MarkerMap map,
             int windowStart, int windowEnd, int nWindows,
             BlockingQueue<int[]> seedQ,
-            OutputStream hbdOS, OutputStream ibdOS) {
+            SynchFileOutputStream hbdOS, SynchFileOutputStream ibdOS) {
         if (gt.isPhased()==false) {
             throw new IllegalArgumentException("unphased data");
         }
@@ -148,7 +149,7 @@ public final class PbwtIbd implements Runnable {
         this.minSeedMarkersM1 = par.min_markers() - 1;
         this.minExtendMarkersM1 = (int) Math.floor((minExtend/minSeed)*par.min_markers()) - 1;
         this.nWindows = nWindows;
-        this.seedList = new IntList(3*seedListThreshold/2 + 1);
+        this.seedList = new IntList(3*SEED_LIST_THRESHOLD/2 + 1);
         this.seedQ = seedQ;
         this.hbdOS = hbdOS;
         this.ibdOS = ibdOS;
@@ -168,7 +169,7 @@ public final class PbwtIbd implements Runnable {
         try {
             int maxIbsStart = windowStart;
             for (int m=advancePbwtToFirstIbsEnd(); m<windowEnd; ++m) {
-                if ((m & 0b11)==0b11 && useSeedQ==false && finishedCnt.get()>0) {
+                if ((m & 0b11)==0b11 && useSeedQ==false && FINISHED_CNT.get()>0) {
                     useSeedQ = true;
                 }
                 int nAlleles = gt.marker(m).nAlleles();
@@ -176,9 +177,9 @@ public final class PbwtIbd implements Runnable {
                 maxIbsStart = updateMaxIbsStart(m, maxIbsStart);
                 storeSeedSegments(m, maxIbsStart);
             }
-            finishedCnt.incrementAndGet();
+            FINISHED_CNT.incrementAndGet();
             int[] seeds;
-            while (finishedCnt.get()<nWindows || seedQ.peek()!=null) {
+            while (FINISHED_CNT.get()<nWindows || seedQ.peek()!=null) {
                 while ((seeds=seedQ.poll(50, TimeUnit.MILLISECONDS))!=null) {
                     processSeedList(seeds);
                 }
@@ -263,7 +264,7 @@ public final class PbwtIbd implements Runnable {
                                     seedList.add(ibsStart);
                                     seedList.add(ibsInclEnd);
                                 }
-                                if (seedList.size()>seedListThreshold) {
+                                if (seedList.size()>SEED_LIST_THRESHOLD) {
                                     flushSeeds();
                                 }
                             }
@@ -305,8 +306,8 @@ public final class PbwtIbd implements Runnable {
         for (int j=0; j<seeds.length; j+=4) {
             processSeed(seeds[j], seeds[j+1], seeds[j+2], seeds[j+3]);
         }
-        flushHbdBuffer(baosThreshold);
-        flushIbdBuffer(baosThreshold);
+        flushHbdBuffer(BAOS_THRESHOLD);
+        flushIbdBuffer(BAOS_THRESHOLD);
     }
 
     private void processSeed(int hap1, int hap2, int start, int inclEnd) {
@@ -316,11 +317,11 @@ public final class PbwtIbd implements Runnable {
             if ((genPos[inclEnd] - genPos[start])>=minOutput) {
                 if ((hap1>>1)==(hap2>>1)) {
                     writeSegment(hap1, hap2, start, inclEnd, hbdOut);
-                    nHbdSegs.incrementAndGet();
+                    N_HBD_SEGS.incrementAndGet();
                 }
                 else {
                     writeSegment(hap1, hap2, start, inclEnd, ibdOut);
-                    nIbdSegs.incrementAndGet();
+                    N_IBD_SEGS.incrementAndGet();
                 }
             }
         }
@@ -433,9 +434,10 @@ public final class PbwtIbd implements Runnable {
     private void flushHbdBuffer(int byteThreshold) {
         if (hbdBaos.size() >= byteThreshold) {
             try {
-                hbdOut.flush();
+                hbdOut.close();
                 hbdOS.write(hbdBaos.toByteArray());
                 hbdBaos.reset();
+                hbdOut = printWriter(hbdBaos);
             } catch (IOException ex) {
                 Utilities.exit("ERROR: ", ex);
             }
@@ -445,9 +447,10 @@ public final class PbwtIbd implements Runnable {
     private void flushIbdBuffer(int byteThreshold) {
         if (ibdBaos.size() >= byteThreshold) {
             try {
-                ibdOut.flush();
+                ibdOut.close();
                 ibdOS.write(ibdBaos.toByteArray());
                 ibdBaos.reset();
+                ibdOut = printWriter(ibdBaos);
             } catch (IOException ex) {
                 Utilities.exit("ERROR: ", ex);
             }
@@ -504,7 +507,7 @@ public final class PbwtIbd implements Runnable {
      * @return the number of output HBD segments
      */
     public static long nHbdSegs() {
-        return nHbdSegs.get();
+        return N_HBD_SEGS.get();
     }
 
     /**
@@ -512,6 +515,6 @@ public final class PbwtIbd implements Runnable {
      * @return the number of output IBD segments
      */
     public static long nIbdSegs() {
-        return nIbdSegs.get();
+        return N_IBD_SEGS.get();
     }
 }

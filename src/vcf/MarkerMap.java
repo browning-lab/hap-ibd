@@ -52,11 +52,7 @@ public class MarkerMap {
                 != markers.marker(markers.nMarkers()-1).chromIndex()) {
             throw new IllegalArgumentException("inconsistent data");
         }
-        return new MarkerMap(genMap, markers);
-    }
-
-    private MarkerMap(GeneticMap genMap, Markers markers) {
-        this(genMap.genPos(markers));
+        return new MarkerMap(GeneticMap.genPos(genMap, markers));
     }
 
     private MarkerMap(double[] gPos) {

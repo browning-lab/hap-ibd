@@ -116,6 +116,20 @@ public final class BGZIPOutputStream extends OutputStream {
         assert crc.getValue()==0;
     }
 
+    /**
+     * Write an empty BGZIP block to the specified output stream.  The Java
+     * Virtual Machine will exit with an error message if an {@code IOException}
+     * is thrown while writing the empty BGZIP block.
+     * @param os the output stream
+     * @throws IOException if an I/O error occurs
+     * @throws NullPointerException if {@code os == null}
+     */
+    public static void writeEmptyBlock(OutputStream os) throws IOException {
+        try (BGZIPOutputStream bgzip = new BGZIPOutputStream(os, true)) {
+            // write empty BGZIP block to bgzip by closing bgzip
+        }
+    }
+
     private void compressAndFlushBuffer() throws IOException {
         crc.update(input, 0, iSize);
         int crc32 = (int) crc.getValue();

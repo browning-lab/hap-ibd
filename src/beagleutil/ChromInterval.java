@@ -64,17 +64,15 @@ public final class ChromInterval implements IntInterval,
 
     /**
      * Constructs a new {@code ChromInterval} instance.
-     *
      * @param chrom the chromosome,
      * @param start the first genome coordinate in the interval.
      * @param end the last genome coordinate in the interval.
-     *
      * @throws IllegalArgumentException if
-     * {@code start<0 || start>end || chrom.isEmpty()}.
-     * @throws NullPointerException if {@code chrom==null}.
+     * {@code start>end || chrom.isEmpty()}
+     * @throws NullPointerException if {@code chrom==null}
      */
     public ChromInterval(String chrom, int start, int end) {
-        if (start < 0 || start > end) {
+        if (start > end) {
             String s = "start=" + start + " end=" + end;
             throw new IllegalArgumentException(s);
         }
@@ -104,10 +102,10 @@ public final class ChromInterval implements IntInterval,
      * {@code [start]} and {@code [end]} are non-negative
      * integers satisfying {@code [start]<=[end]}.  If the specified
      * string does not contain a start position, the {@code start()}
-     * method of the returned {@code ChromInterval} instance returns 0.
-     * If no end position is specified, the {@code end()} method of the
-     * returned {@code ChromInterval} instance returns
-     * {@code Integer.MAX_VALUE}.
+     * method of the returned {@code ChromInterval} instance returns
+     * {@code Integer.MIN_VALUE}. If no end position is specified,
+     * the {@code end()} method of the returned {@code ChromInterval}
+     * instance returns {@code Integer.MAX_VALUE}.
      *
      * @param str a chromosome interval.
      * @return a {@code ChromInterval} instance corresponding to the
@@ -121,7 +119,7 @@ public final class ChromInterval implements IntInterval,
         }
         str = str.trim();
         int length = str.length();
-        int start = 0;
+        int start = Integer.MIN_VALUE;
         int end = Integer.MAX_VALUE;
         int chrDelim = str.lastIndexOf(Const.colon);
         int posDelim = str.lastIndexOf(Const.hyphen);

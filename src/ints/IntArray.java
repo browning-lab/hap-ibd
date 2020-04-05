@@ -44,29 +44,6 @@ public interface IntArray {
     int get(int index);
 
     /**
-     * Returns an {@code IntArray} instance of the specified size whose
-     * {@code k}-th element is {@code k}.
-     * @param size the size of the returned array
-     * @return the identity {@code IntArray} having the specified size.
-     */
-    static IntArray identity(int size) {
-        return new IntArray() {
-            @Override
-            public int size() {
-                return size;
-            }
-
-            @Override
-            public int get(int index) {
-                if (index<0 || index>=size) {
-                    throw new IllegalArgumentException(String.valueOf(size));
-                }
-                return index;
-            }
-        } ;
-    }
-
-    /**
      * Returns a copy of the specified array.
      * @param ia a list of integers
      * @return a copy of the specified array

@@ -43,14 +43,16 @@ public interface GTRec extends DuplicatesGTRec {
      * otherwise.
      * @return {@code true} if the value returned by {@code this.gl()} is
      * determined by a called or missing genotype
-     *
-     * @implSpec The default implementation returns {@code true}
      */
     boolean isGTData();
 
     /**
      * Returns the probability of the observed data for the specified sample
      * if the specified pair of ordered alleles is the true ordered genotype.
+     * Returns {@code 1.0f} if the corresponding genotype determined by the
+     * {@code isPhased()}, {@code allele1()}, and {@code allele2()} methods
+     * is consistent with the specified ordered genotype, and returns
+     * {@code 0.0f} otherwise.
      * @param sample the sample index
      * @param allele1 the first allele index
      * @param allele2 the second allele index
@@ -63,11 +65,6 @@ public interface GTRec extends DuplicatesGTRec {
      * {@code allele1 < 0 || allele1 >= this.marker().nAlleles()}
      * @throws IndexOutOfBoundsException if
      * {@code allele2 < 0 || allele2 >= this.marker().nAlleles()}
-     *
-     * @implSpec The default implementation returns {@code 1.0f} if the
-     * corresponding genotype determined by the {@code isPhased()},
-     * {@code allele1()}, and {@code allele2()} methods is consistent
-     * with the specified ordered genotype, and returns {@code 0.0f} otherwise.
      */
     float gl(int sample, int allele1, int allele2);
 
