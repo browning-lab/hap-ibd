@@ -282,8 +282,8 @@ public class Utilities {
 
     /**
      * Shuffles the specified array so that a random set of ${code nElements}
-     * from the array are the first elements.  The specified array is unchanged
-     * if {@code nElements <= 0}.
+     * elements from the array are the first ${code nElements} elements.
+     * The specified array is unchanged if {@code nElements <= 0}.
      * @param ia an array to be shuffled
      * @param nElements the size of the random set of elements which
      * are shuffled to the beginning of the array

@@ -9,12 +9,12 @@ version printed in the first line of the output **log** file and
 please cite the article that describes the **hap-ibd** method:
 
 > Y Zhou, S R Browning, B L Browning. A fast and simple method for detecting
-identity by descent segments in large-scale data. bioRxiv 2019.12.12.874685;
-doi: https://biorxiv.org/cgi/content/short/2019.12.12.874685v1
+identity by descent segments in large-scale data. The American Journal of Human
+Genetics 106(4):426-437. doi: https://doi.org/10.1016/j.ajhg.2020.02.010
 
-Brian Browning
+[Brian Browning](https://faculty.washington.edu/browning)
 
-Last updated April 4, 2020
+Last updated April 22, 2020
 
 ## Installation
 
