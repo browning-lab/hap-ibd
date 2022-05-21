@@ -14,7 +14,7 @@ Genetics 106(4):426-437. doi: https://doi.org/10.1016/j.ajhg.2020.02.010
 
 [Brian Browning](https://faculty.washington.edu/browning)
 
-Last updated April 22, 2020
+Last updated May 20, 2022
 
 ## Installation
 
@@ -73,9 +73,9 @@ A VCF record may have multiple ALT alleles. A VCF file with a name ending in
 with cM units. The **hap-ibd** program will use linear interpolation to estimate genetic
 positions between map positions. Chromosome identifiers in the genetic map and
 input VCF file must match. HapMap genetic maps in cM units are available for
-[GRCh36](http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh36.map.zip),
-[GRCh37](http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip), and
-[GRCh38](http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh38.map.zip).
+[GRCh36](https://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh36.map.zip),
+[GRCh37](https://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip), and
+[GRCh38](https://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh38.map.zip).
 
 * **out=[string]** where **[string]** is the output filename prefix.
 
