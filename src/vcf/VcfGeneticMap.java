@@ -26,12 +26,16 @@ public class VcfGeneticMap implements GeneticMap {
      *
      * @param marker a genetic marker
      * @return the genetic map position of the specified marker
-     * @throws IllegalArgumentException if this genetic map has no
-     *                                  map positions for the specified chromosome
+     * @throws IllegalArgumentException if the vcf does not have a position mapped for this marker
      * @throws NullPointerException     if {@code marker == null}
      */
     @Override
     public double genPos(Marker marker) {
+        double geneticPos = marker.geneticPos();
+        if (Double.isNaN(geneticPos)) {
+            throw new IllegalArgumentException("Called with vcf-has-cm, but marker at position " + marker.pos() +
+                    " does not have genetic distance in INFO column.");
+        }
         return marker.geneticPos();
     }
 
