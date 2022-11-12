@@ -48,6 +48,8 @@ public class BasicMarker implements Marker {
     private final int nGenotypes;
     private final int end;
 
+    private final double geneticPos;
+
     /**
      * Constructs a new {@code BasicMarker} instance from the specified data.
      * The {@code end()} method of the new instance will return {@code -1}.
@@ -69,7 +71,7 @@ public class BasicMarker implements Marker {
      * of {@code alleles} is {@code null}
      */
     public BasicMarker(int chrom, int pos, String[] ids, String[] alleles) {
-        this(chrom, pos, ids, alleles, -1);
+        this(chrom, pos, ids, alleles, -1, Double.NaN);
     }
 
     /**
@@ -93,7 +95,7 @@ public class BasicMarker implements Marker {
      * of {@code alleles} is {@code null}
      */
     public BasicMarker(int chrom, int pos, String[] ids, String[] alleles,
-            int end) {
+            int end, double geneticPos) {
         if (chrom<0 || chrom>=ChromIds.instance().size()) {
             throw new IndexOutOfBoundsException(String.valueOf(chrom));
         }
@@ -106,6 +108,7 @@ public class BasicMarker implements Marker {
         this.alleles = canonicalAlleles(alleles.clone());
         this.nGenotypes = (alleles.length*(alleles.length+1))/2;
         this.end = end;
+        this.geneticPos = geneticPos;
     }
 
     private static String[] removeMissingIds(int chrom, int pos, String[] ids) {
@@ -253,6 +256,7 @@ public class BasicMarker implements Marker {
         this.alleles = extractAlleles(chromIndex, pos, fields[3], fields[4]);
         this.nGenotypes = alleles.length*(alleles.length+1)/2;
         this.end = extractEnd(chromIndex, pos, infoField);
+        this.geneticPos = extractGeneticPos(chromIndex, pos, infoField);
     }
 
     private static int extractChrom(String chrom, String vcfRecord) {
@@ -317,6 +321,26 @@ public class BasicMarker implements Marker {
         return canonicalAlleles(alleles);
     }
 
+    private static double extractGeneticPos(int chrom, int pos, String info) {
+        String[] fields = StringUtil.getFields(info, Const.semicolon);
+        String key = "CM=";
+        for (String field : fields) {
+            if (field.startsWith(key)) {
+                String value = field.substring(3);
+                try {
+                    return Double.parseDouble(value);
+                } catch (NumberFormatException e) {
+                    String s = "ERROR: invalid INFO:CM field at "
+                            + coordinate(chrom, pos) + " [" + key + value
+                            + "]";
+                    Utilities.exit(s);
+                }
+            }
+        }
+
+        return Double.NaN;
+    }
+
     /*
      * Returns value of first END key in the specified INFO field, or
      * returns -1 if there is no END key in INFO field.
@@ -361,6 +385,7 @@ public class BasicMarker implements Marker {
         Marker m = markerOnReverseStrand;
         this.chromIndex = m.chromIndex();
         this.pos = m.pos();
+        this.geneticPos = m.geneticPos();
         this.ids = new String[m.nIds()];
         for (int j=0; j<this.ids.length; ++j) {
             this.ids[j] = m.id(j);
@@ -422,6 +447,11 @@ public class BasicMarker implements Marker {
     @Override
     public int pos() {
         return pos;
+    }
+
+    @Override
+    public double geneticPos() {
+        return geneticPos;
     }
 
     @Override
@@ -491,6 +521,11 @@ public class BasicMarker implements Marker {
                 sb.append(j<2 ? Const.tab : Const.comma);
                 sb.append(alleles[j]);
             }
+        }
+        if (!Double.isNaN(geneticPos)) {
+            sb.append(Const.tab);
+            sb.append("CM=");
+            sb.append(geneticPos);
         }
         return sb.toString();
     }
