@@ -46,6 +46,12 @@ public interface Marker extends Comparable<Marker> {
     int pos();
 
     /**
+     * Returns the genetic position
+     * @return the genetic position in CM
+     */
+    double geneticPos();
+
+    /**
      * Returns the number of marker identifiers.
      * @return the number of marker identifiers
      */
