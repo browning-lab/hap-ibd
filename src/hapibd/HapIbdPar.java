@@ -38,6 +38,7 @@ public final class HapIbdPar {
     // data input/output parameters
     private final File gt;
     private final File map;
+    private final boolean useVcfMap;
     private final String out;
     private final File excludesamples;
 
@@ -79,7 +80,8 @@ public final class HapIbdPar {
         // data input/output parameters
         gt = Validate.getFile(Validate.stringArg("gt", argsMap, true, null,
                 null));
-        map = Validate.getFile(Validate.stringArg("map", argsMap, true, null, null));
+        useVcfMap = Validate.booleanArg("vcf-has-cm", argsMap, false, false);
+        map = Validate.getFile(Validate.stringArg("map", argsMap, false, null, null));
         out = Validate.stringArg("out", argsMap, true, null, null);
         excludesamples = Validate.getFile(Validate.stringArg("excludesamples",
                 argsMap, false, null, null));
@@ -154,6 +156,14 @@ public final class HapIbdPar {
      */
     public File map() {
         return map;
+    }
+
+    /**
+     * Returns if we should get genetic position from the VCF
+     * @return useVcfMap boolean
+     */
+    public boolean useVcfMap() {
+        return useVcfMap;
     }
 
     /**
