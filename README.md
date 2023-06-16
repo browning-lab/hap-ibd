@@ -14,7 +14,7 @@ Genetics 106(4):426-437. doi: https://doi.org/10.1016/j.ajhg.2020.02.010
 
 [Brian Browning](https://faculty.washington.edu/browning)
 
-Last updated May 20, 2022
+Last updated: June 14, 2023
 
 ## Installation
 

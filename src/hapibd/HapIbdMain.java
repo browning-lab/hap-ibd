@@ -34,8 +34,8 @@ import java.util.Locale;
 public class HapIbdMain {
 
     private static final String EXECUTABLE = "hap-ibd.jar";
-    private static final String PROGRAM = EXECUTABLE + "  [ version 1.0, 20May22.818 ]";
-    private static final String COPYRIGHT = "Copyright (C) 2019 Brian L. Browning";
+    private static final String PROGRAM = EXECUTABLE + "  [ version 1.0, __REV__ ]";
+    private static final String COPYRIGHT = "Copyright (C) 2019-2023 Brian L. Browning";
 
     /**
      * The java command to run this version of the program.

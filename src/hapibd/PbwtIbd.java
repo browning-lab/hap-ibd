@@ -200,7 +200,7 @@ public final class PbwtIbd implements Runnable {
         int end = insPt<0 ? -insPt-1 : insPt;
         int minEnd = windowStart + minSeedMarkersM1;
         if (end<minEnd) {
-            end = minEnd;
+            end = Math.min(minEnd, gt.nMarkers());
         }
         for (int m=windowStart; m<end; ++m) {
             int nAlleles = gt.marker(m).nAlleles();
