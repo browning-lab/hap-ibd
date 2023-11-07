@@ -18,6 +18,8 @@
 package vcf;
 
 import beagleutil.ChromInterval;
+import hapibd.HapIbdPar;
+
 import java.io.File;
 
 /**
@@ -109,17 +111,21 @@ public interface GeneticMap {
      * @throws IllegalArgumentException if all base positions on a chromosome
      * have the same genetic map position
      */
-    static GeneticMap geneticMap(File file, ChromInterval chromInt) {
-        if (file==null) {
+    static GeneticMap geneticMap(HapIbdPar par, ChromInterval chromInt) {
+        if (par.useVcfMap()) {
+            return new VcfGeneticMap();
+        }
+
+        if (par.map()==null) {
             double scaleFactor = 1e-6;
             return new PositionMap(scaleFactor);
         }
         else {
             if (chromInt==null) {
-                return PlinkGenMap.fromPlinkMapFile(file);
+                return PlinkGenMap.fromPlinkMapFile(par.map());
             }
             else {
-                return PlinkGenMap.fromPlinkMapFile(file, chromInt.chrom());
+                return PlinkGenMap.fromPlinkMapFile(par.map(), chromInt.chrom());
             }
         }
     }

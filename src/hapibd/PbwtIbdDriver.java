@@ -62,8 +62,7 @@ public final class PbwtIbdDriver {
      * @throws NullPointerException if {@code par == null}
      */
     public static long[] detectIbd(HapIbdPar par) {
-        ChromInterval chromInt = null;
-        GeneticMap genMap = GeneticMap.geneticMap(par.map(), chromInt);
+        GeneticMap genMap = GeneticMap.geneticMap(par, null);
         long[] nSamplesAndMarkers = new long[2];
         File hbdFile = new File(par.out() + ".hbd.gz");
         File ibdFile = new File(par.out() + ".ibd.gz");
